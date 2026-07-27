@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceArea, ReferenceLine, Brush,
 } from "recharts";
+import { calendarTicks } from "../lib/calendarTicks.js";
 
 const ms2day = (ms) => new Date(ms).toISOString().slice(0, 10);
 const yr = (ms) => new Date(ms).getUTCFullYear();
@@ -60,6 +61,11 @@ export default function IndexChart({ data, lines, events = [], selWindow, active
     if (vspan < 730) return d.toLocaleString("en-US", { month: "short", year: "2-digit", timeZone: "UTC" });                  // "Mar 25"
     return String(d.getUTCFullYear());
   };
+  // Explicit ticks pinned to calendar boundaries (see lib/calendarTicks.js):
+  // otherwise a tick labelled "2022" could sit in late 2021.
+  const t0 = n ? data[view[0]].t : 0;
+  const t1 = n ? data[Math.min(view[1], n - 1)].t : 0;
+  const xTicks = useMemo(() => (n ? calendarTicks(t0, t1, vspan) : undefined), [n, t0, t1, vspan]);
 
   return (
     <div className="card chart-card">
@@ -79,7 +85,7 @@ export default function IndexChart({ data, lines, events = [], selWindow, active
             <CartesianGrid strokeOpacity={0.10} vertical={false} />
             <XAxis dataKey="t" type="number" domain={["dataMin", "dataMax"]} scale="time"
                    tickFormatter={fmtX} tick={{ fontSize: 11 }} minTickGap={40}
-                   allowDataOverflow />
+                   ticks={xTicks} allowDataOverflow />
             <YAxis tick={{ fontSize: 11 }} width={46} />
             <Tooltip content={() => null} cursor={{ stroke: "#8b97a7", strokeOpacity: 0.4 }} />
             {events.map((e, i) => (

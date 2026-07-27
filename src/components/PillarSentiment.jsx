@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceArea, ReferenceLine, Brush,
 } from "recharts";
+import { calendarTicks } from "../lib/calendarTicks.js";
 
 const ms2day = (ms) => new Date(ms).toISOString().slice(0, 10);
 const yr = (ms) => new Date(ms).getUTCFullYear();
@@ -46,6 +47,10 @@ export default function PillarSentiment({ idx, sent, color, name, events = [], s
     if (vspan < 730) return d.toLocaleString("en-US", { month: "short", year: "2-digit", timeZone: "UTC" });
     return String(d.getUTCFullYear());
   };
+  // Calendar-aligned ticks (years at exactly 1 Jan etc.) — see lib/calendarTicks.js
+  const t0 = n ? idx[view[0]].t : 0;
+  const t1 = n ? idx[Math.min(view[1], n - 1)].t : 0;
+  const xTicks = useMemo(() => (n ? calendarTicks(t0, t1, vspan) : undefined), [n, t0, t1, vspan]);
 
   const down = (e) => { if (e && e.activeLabel != null) setDrag({ a: e.activeLabel, b: e.activeLabel }); };
   const move = (e) => {
@@ -121,7 +126,7 @@ export default function PillarSentiment({ idx, sent, color, name, events = [], s
                        margin={{ top: 6, right: 12, bottom: 0, left: -6 }}>
               <CartesianGrid strokeOpacity={0.10} vertical={false} />
               <XAxis dataKey="t" type="number" domain={["dataMin", "dataMax"]} scale="time" tickFormatter={fmtX}
-                     tick={{ fontSize: 11 }} minTickGap={40} allowDataOverflow />
+                     tick={{ fontSize: 11 }} minTickGap={40} ticks={xTicks} allowDataOverflow />
               <YAxis tick={{ fontSize: 11 }} width={46} domain={["auto", "auto"]} allowDataOverflow />
               <Tooltip content={() => null} cursor={{ stroke: "#8b97a7", strokeOpacity: 0.4 }} />
               <Line type="monotone" dataKey="neg" stroke={NEG} dot={false} isAnimationActive={false} strokeWidth={1.6} connectNulls />
